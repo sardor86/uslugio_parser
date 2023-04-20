@@ -1,6 +1,6 @@
-from config import path
+from config import path, Config
 from driver import Driver
-from services_and_countries import get_all_countries, get_all_services
+from urls_control import get_all_countries, get_all_services
 from excel import Excel
 
 from time import sleep
@@ -16,12 +16,44 @@ def draw_list(roster: list) -> None:
     print(f'{index}) все')
 
 
+class Number:
+    def __init__(self, number: str, max_number: int, all_countries: list, exception: str = None) -> None:
+        self.all_countries = all_countries
+        self.number = number
+        self.max_number = max_number
+        self.exception = exception
+
+    def check_number(self) -> [int, None]:
+        if self.number == self.exception:
+            return -1
+
+        if not self.number.isdigit():
+            return None
+        self.number = int(self.number)
+
+        if self.number < 0 or self.number > self.max_number:
+            return None
+
+        return self.number
+
+    def draw_list(self) -> None:
+        index = 0
+
+        for elem in self.all_countries:
+            print(f'{index}) {elem[0]}')
+            index += 1
+
+        print(f'{index}) все')
+
+
 def main():
+    # preparation chrome drivers
+    config = Config(path / '.env')
+
     driver = Driver(path / 'drivers/chromedriver.exe', '')
-    driver.log_in('', '')
+    driver.log_in(config.email, config.password)
 
-    excel = Excel('data', [])
-
+    # get country
     all_countries = get_all_countries()
     max_countries_index = len(all_countries)
 
@@ -29,15 +61,10 @@ def main():
 
     country_number = input('Выберите город: ')
 
-    if not country_number.isdigit():
+    country_number = check_number(country_number, max_countries_index)
+
+    if country_number is None:
         print('Вы неправильно написали номер города')
-        sleep(5)
-        return
-
-    country_number = int(country_number)
-
-    if country_number > max_countries_index:
-        print('такого города нет')
         sleep(5)
         return
 
@@ -64,6 +91,8 @@ def main():
         return
 
     country = all_countries[country_number]
+
+    # get service
     all_services = get_all_services(country[1])
     max_services_index = len(all_services)
 
@@ -71,15 +100,10 @@ def main():
 
     service_number = input('Выберите сервис: ')
 
-    if not service_number.isdigit():
-        print('Вы неправильно написали номер города')
-        sleep(5)
-        return
+    service_number = check_number(service_number, max_services_index)
 
-    service_number = int(service_number)
-
-    if service_number > max_services_index:
-        print('такого сервиса нет')
+    if service_number is None:
+        print('Вы неправильно написали номер сервиса')
         sleep(5)
         return
 

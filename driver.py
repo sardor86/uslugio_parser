@@ -25,8 +25,22 @@ class Driver(BaseDriver):
                     bottom = data.find_element(By.CLASS_NAME, 'item-bottom')
                     bottom.find_element(By.CLASS_NAME, 'showphone1').click()
 
-                    self.user_name.append(data.find_element(By.CLASS_NAME,
-                                                            'phoneline').find_element(By.TAG_NAME, 'span').text)
+                    break
+                except NoSuchElementException:
+                    pass
+            username = ''
+            for _ in range(5):
+                try:
+                    username = data.find_element(By.CLASS_NAME,
+                                                 'phoneline').find_element(By.TAG_NAME, 'span').text
+                    sleep(.5)
+                    break
+                except NoSuchElementException:
+                    sleep(.5)
+            self.user_name.append(username)
+
+            while True:
+                try:
                     self.phone_number.append(bottom.find_element(By.TAG_NAME, 'a').text)
                     sleep(.5)
                     break
