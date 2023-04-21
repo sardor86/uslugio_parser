@@ -1,49 +1,9 @@
 from config import path, Config
 from driver import Driver
-from urls_control import get_all_countries, get_all_services
+from urls_control import DataControl
 from excel import Excel
 
 from time import sleep
-
-
-def draw_list(roster: list) -> None:
-    index = 0
-
-    for elem in roster:
-        print(f'{index}) {elem[0]}')
-        index += 1
-
-    print(f'{index}) все')
-
-
-class Number:
-    def __init__(self, number: str, max_number: int, all_countries: list, exception: str = None) -> None:
-        self.all_countries = all_countries
-        self.number = number
-        self.max_number = max_number
-        self.exception = exception
-
-    def check_number(self) -> [int, None]:
-        if self.number == self.exception:
-            return -1
-
-        if not self.number.isdigit():
-            return None
-        self.number = int(self.number)
-
-        if self.number < 0 or self.number > self.max_number:
-            return None
-
-        return self.number
-
-    def draw_list(self) -> None:
-        index = 0
-
-        for elem in self.all_countries:
-            print(f'{index}) {elem[0]}')
-            index += 1
-
-        print(f'{index}) все')
 
 
 def main():
@@ -53,88 +13,94 @@ def main():
     driver = Driver(path / 'drivers/chromedriver.exe', '')
     driver.log_in(config.email, config.password)
 
-    # get country
-    all_countries = get_all_countries()
-    max_countries_index = len(all_countries)
+    data = DataControl()
 
-    draw_list(all_countries)
+    data.get_all_countries()
+    data.draw_list(data.all_country)
 
-    country_number = input('Выберите город: ')
+    data.country_number[0] = input('Выберите город: ')
+    data.country_number[0] = data.check_number(data.country_number)
 
-    country_number = check_number(country_number, max_countries_index)
-
-    if country_number is None:
-        print('Вы неправильно написали номер города')
+    if data.country_number[0] is None:
+        print('Вы ввели неверный номер')
         sleep(5)
         return
 
-    if country_number == max_countries_index:
-        all_countries = get_all_countries()
-
-        excel = Excel('data', [country[0] for country in all_countries])
+    if data.country_number[0] == data.country_number[1]:
+        excel = Excel('data', [country[0] for country in data.all_country])
 
         column_sequence = 0
 
-        for country in all_countries:
+        for country in data.all_country:
             print(country[0])
-            for service in get_all_services(country[1]):
-                print(service[0])
+
+            data.get_all_services(country[1])
+            for service in data.all_service:
+                driver.user_name = []
+                driver.phone_number = []
+
                 driver.url = service[1]
                 driver.get_phone_and_name_service()
 
                 excel.save_data(country[0], service[0], column_sequence, driver.user_name, driver.phone_number)
-
                 column_sequence += 1
-
         excel.save()
-
         return
 
-    country = all_countries[country_number]
+    data.country = data.all_country[data.country_number[0]]
+    data.get_all_services(data.country[1])
 
-    # get service
-    all_services = get_all_services(country[1])
-    max_services_index = len(all_services)
-
-    draw_list(all_services)
-
-    service_number = input('Выберите сервис: ')
-
-    service_number = check_number(service_number, max_services_index)
-
-    if service_number is None:
-        print('Вы неправильно написали номер сервиса')
-        sleep(5)
-        return
-
-    if service_number == max_services_index:
-
-        excel = Excel('data', [country[0]])
-
-        column_sequence = 0
-
-        for service in get_all_services(country[1]):
-            print(service[0])
+    while True:
+        if data.end is True:
+            service = data.all_service[data.service_number[0]]
+            excel = Excel('data', [data.country[0]])
             driver.url = service[1]
-
             driver.get_phone_and_name_service()
 
-            excel.save_data(country[0], service[0], column_sequence, driver.user_name, driver.phone_number)
+            excel.save_data(data.country[0], service[0], 0, driver.user_name, driver.phone_number)
+            excel.save()
+            return
 
-            column_sequence += 1
-        excel.save()
+        data.draw_list(data.all_service)
+        print('n) начать парсинг')
 
-    else:
-        service = get_all_services(country[1])[service_number]
+        data.service_number[0] = input('Выберите сервис: ')
+        data.service_number[0] = data.check_number(data.service_number, exception='n')
 
-        excel = Excel('data', [country[0]])
+        if data.service_number[0] is None:
+            print('Вы ввели неправильный номер')
+            sleep(5)
+            return
 
-        driver.url = service[1]
+        if data.service_number[0] == -1:
+            excel = Excel('data', [data.country[0]])
+            driver.url = data.old_service_url
+            driver.get_phone_and_name_service()
 
-        driver.get_phone_and_name_service()
+            excel.save_data(data.country[0], data.old_service_name, 0, driver.user_name, driver.phone_number)
+            excel.save()
+            return
 
-        excel.save_data(country[0], service[0], 0, driver.user_name, driver.phone_number)
-        excel.save()
+        if data.service_number[0] == data.service_number[1]:
+            excel = Excel('data', [data.country[0]])
+
+            column_sequence = 0
+
+            for service in data.all_service:
+                driver.user_name = []
+                driver.phone_number = []
+
+                driver.url = service[1]
+                driver.get_phone_and_name_service()
+
+                excel.save_data(data.country[0], service[0], column_sequence, driver.user_name, driver.phone_number)
+                column_sequence += 1
+            excel.save()
+            return
+
+        if not data.end is True:
+            data.old_service_name = data.all_service[data.service_number[0]][0]
+            data.get_all_services(data.all_service[data.service_number[0]][1])
 
 
 if __name__ == '__main__':

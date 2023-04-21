@@ -16,7 +16,6 @@ path = Path(__file__).parent
 class BaseDriver(webdriver.Chrome):
     def __init__(self, driver_path: str, url: str) -> None:
         options = Options()
-        options.add_argument('headless')
         options.add_argument(BROWSER_SETTINGS)
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
